@@ -1,5 +1,10 @@
 #!/bin/bash
 
+
+function prop {
+    grep "${1}" config.properties|cut -d'=' -f2
+}
+
 # Check if the AWS CLI is in the PATH
 found=$(which aws)
 if [ -z "$found" ]; then
@@ -7,36 +12,56 @@ if [ -z "$found" ]; then
   exit 1
 fi
 
-# Check if jq is in the PATH
-found=$(which jq)
-if [ -z "$found" ]; then
-  echo "Please install jq under your PATH: http://stedolan.github.io/jq/"
-  exit 1
-fi
-
 # Check if config.json is present
-if [ ! -f config.json ]
+if [ ! -f config.properties ]
 then
-  echo "config.json not found, please copy config.json.sample and edit the required values"
+  echo "config.properties not found, please copy config.properties.template and edit the required values"
   exit 1
 fi
 
 
 # Read other configuration from config.json
-region=$(jq -r '.deploymentRegion' config.json)
-appName=$(jq -r '.appName' config.json)
-
-cloudformation="file://cloudformation.json"
+region="$(prop 'app.region')"
+appName="$(prop 'app.name')"
 scriptDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+cloudformation="file://cloudformation.json"
+
+
+aws cloudformation describe-stacks \
+  --stack-name $appName \
+  --region $region >/dev/null
+
+  if [[ $? != 0 ]]; then
+    echo AAAAAAAAAAAaa
+    exit 1
+  fi
+
 # Creating the cloudformation stack
-aws cloudformation create-stack \
+error="$(aws cloudformation create-stack \
     --capabilities CAPABILITY_NAMED_IAM \
     --stack-name $appName \
     --template-body $cloudformation \
-    --region $region >/dev/null
+    --region $region 2>&1 > /dev/null)"
 
+# If the stack creation returned an error
 if [[ $? != 0 ]]; then
-  exit 1
+  if echo $error | grep --quiet AlreadyExistsException; then
+    echo "Stack already exists, updating"
+    aws cloudformation update-stack \
+        --capabilities CAPABILITY_NAMED_IAM \
+        --stack-name $appName \
+        --template-body $cloudformation \
+        --region $region > /dev/null
+
+        # If the stack update did not work
+        if [[ $? != 0 ]]; then
+          exit 1
+        fi
+  else
+    echo $error
+    exit 1
+  fi
+
 fi
 
 echo "Waiting for the stack to complete creation, this can take a while"
