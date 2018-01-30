@@ -1,0 +1,4 @@
+{
+  "deploymentRegion": "us-east-1" ,
+  "appName": "DockerEcsHelloWorld"
+}

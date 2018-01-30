@@ -1,0 +1,9 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Description" : "DockerEcsHelloWorld App",
+  "Resources" : {
+    "EcsCluster":{
+      "Type":"AWS::ECS::Cluster"
+    }
+  }
+}
