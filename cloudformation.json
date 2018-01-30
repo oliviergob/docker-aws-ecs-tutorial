@@ -2,8 +2,28 @@
   "AWSTemplateFormatVersion" : "2010-09-09",
   "Description" : "DockerEcsHelloWorld App",
   "Resources" : {
-    "EcsCluster":{
+    "DockerEcsHelloWorldCluster":{
       "Type":"AWS::ECS::Cluster"
+    },
+    "DockerEcsHelloWorldClusterExecutionRole": {
+       "Type": "AWS::IAM::Role",
+       "Properties": {
+       "AssumeRolePolicyDocument": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Sid": "",
+            "Effect": "Allow",
+            "Principal": {
+              "Service": "ecs-tasks.amazonaws.com"
+            },
+            "Action": "sts:AssumeRole"
+          }
+         ]
+       },
+       "ManagedPolicyArns": ["arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"],
+       "RoleName": "DockerEcsHelloWorldClusterExecutionRole",
+      }
     }
   }
 }

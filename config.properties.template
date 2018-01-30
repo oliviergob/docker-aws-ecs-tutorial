@@ -1,2 +1,4 @@
 app.region=us-east-1
 app.name=DockerEcsHelloWorld
+net.subnet.id=subnet-great-id
+net.sg.id=sg-great-id

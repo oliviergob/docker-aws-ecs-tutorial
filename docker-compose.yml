@@ -3,8 +3,10 @@ services:
   web:
     image: oliviergob/docker-ecs-tutorial:part1
     ports:
-      - "8080:80"
+      - "80:80"
     networks:
       - webnet
+    logging:
+      driver: awslogs
 networks:
   webnet:
