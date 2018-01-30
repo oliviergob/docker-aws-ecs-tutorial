@@ -1,7 +1,7 @@
 version: "2"
 services:
   web:
-    image: oliviergob/docker-ecs-tutorial:step1
+    image: oliviergob/docker-ecs-tutorial:part1
     ports:
       - "8080:80"
     networks:
