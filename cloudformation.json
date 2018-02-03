@@ -3,7 +3,11 @@
   "Description" : "DockerEcsHelloWorld App",
   "Resources" : {
     "DockerEcsHelloWorldCluster":{
-      "Type":"AWS::ECS::Cluster"
+      "Type":"AWS::ECS::Cluster",
+      "Properties" : {
+        "ClusterName" : "DockerEcsHelloWorldCluster"
+      }
+
     },
     "DockerEcsHelloWorldClusterExecutionRole": {
        "Type": "AWS::IAM::Role",

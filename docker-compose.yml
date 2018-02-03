@@ -6,7 +6,5 @@ services:
       - "80:80"
     networks:
       - webnet
-    logging:
-      driver: awslogs
 networks:
   webnet:

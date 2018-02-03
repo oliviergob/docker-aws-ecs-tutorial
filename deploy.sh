@@ -23,62 +23,54 @@ appName="$(prop 'app.name')"
 scriptDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cloudformation="file://cloudformation.json"
 
+# Checking if the stack exists already
+error="$(aws cloudformation describe-stacks \
+    --stack-name $appName \
+    --region $region 2>&1 > /dev/null)"
 
-# Creating the cloudformation stack
-error="$(aws cloudformation create-stack \
+# If describe-stacks returned ok, the stack exists
+if [[ $? == 0 ]]; then
+  echo "Updating existing stack $appName"
+  stack_action=update-stack
+  wait_action=stack-update-complete
+# If the stack does not exist
+elif echo $error | grep --quiet "does not exist"; then
+  echo "Creating stack $appName"
+  stack_action=create-stack
+  wait_action=stack-create-complete
+# If there is an error
+else
+  echo $error
+  exit 1
+fi
+
+# Creating/Updating the cloudformation stack
+error="$(aws cloudformation $stack_action \
     --capabilities CAPABILITY_NAMED_IAM \
     --stack-name $appName \
     --template-body $cloudformation \
     --region $region 2>&1 > /dev/null)"
 
-# If the stack creation returned an error
+# If aws cli cloudformation returned an error
 if [[ $? != 0 ]]; then
-  if echo $error | grep --quiet AlreadyExistsException; then
-    echo "Stack already exists, updating"
-    error="$(aws cloudformation update-stack \
-        --capabilities CAPABILITY_NAMED_IAM \
-        --stack-name $appName \
-        --template-body $cloudformation \
-        --region $region 2>&1  > /dev/null)"
-
-        # If the stack update did not work
-        if [ $? != 0 ] && echo $error | grep -v --quiet 'No updates are to be performed'; then
-          echo $error
-          exit 1
-        elif echo $error | grep -v --quiet 'No updates are to be performed'; then
-          echo "Waiting for the stack to complete update, this can take a while"
-          sleep 10
-
-          aws cloudformation wait stack-update-complete \
-              --stack-name $appName \
-              --region $region
-          if [[ $? != 0 ]]; then
-            echo "Login to cloudformation front end and have a look at the event logs"
-            exit 1
-          fi
-          echo "Stack Updated"
-        else
-          echo "No Update to the stack"
-        fi
+  if echo $error | grep --quiet 'No updates are to be performed'; then
+    echo "No Update to the stack"
   else
     echo $error
     exit 1
   fi
-## If no error during the stack creation
 else
-  echo "Waiting for the stack to complete creation, this can take a while"
-  sleep 10
-
-  aws cloudformation wait stack-create-complete \
+  echo "Waiting for the stack to complete creation/update, this can take a while"
+  aws cloudformation wait $wait_action \
       --stack-name $appName \
       --region $region
   if [[ $? != 0 ]]; then
     echo "Login to cloudformation front end and have a look at the event logs"
     exit 1
   fi
-  echo "Stack Created"
-
+  echo "Cloudformation creation/update completed"
 fi
+
 
 
 # Generating ecs-params.yml
@@ -89,6 +81,7 @@ sed "s/NET_SUBNET_ID/$subnetId/g" ./ecs-params.template.yml > ./ecs-params.yml
 sed -i "s/NET_SG_ID/$sgId/g" ./ecs-params.yml
 
 # TODO - Sort this out
-ecs-cli configure --cluster DockerEcsHelloWorld-DockerEcsHelloWorldCluster-1N0CSYLAYS1NU --default-launch-type FARGATE --region us-east-1
-ecs-cli compose --project-name HelloWorldTutorial service up --create-log-groups
+ecs-cli configure --cluster DockerEcsHelloWorldCluster --default-launch-type FARGATE --region us-east-1
+ecs-cli compose --project-name HelloWorldTutorial service up #--create-log-groups
+
 exit
