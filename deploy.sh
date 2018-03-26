@@ -80,8 +80,8 @@ sgId="$(prop 'net.sg.id')"
 sed "s/NET_SUBNET_ID/$subnetId/g" ./ecs-params.template.yml > ./ecs-params.yml
 sed -i "s/NET_SG_ID/$sgId/g" ./ecs-params.yml
 
-# TODO - Sort this out
+# Deploying the cluster
 ecs-cli configure --cluster DockerEcsHelloWorldCluster --default-launch-type FARGATE --region us-east-1
-ecs-cli compose --project-name HelloWorldTutorial service up #--create-log-groups
+ecs-cli compose --project-name HelloWorldTutorial service up
 
 exit

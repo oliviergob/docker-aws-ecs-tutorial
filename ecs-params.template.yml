@@ -12,4 +12,4 @@ run_params:
         - "NET_SUBNET_ID"
       security_groups:
         - "NET_SG_ID"
-      assign_public_ip: DISABLED
+      assign_public_ip: ENABLED
