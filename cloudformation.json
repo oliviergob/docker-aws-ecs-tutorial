@@ -1,6 +1,20 @@
 {
   "AWSTemplateFormatVersion" : "2010-09-09",
   "Description" : "DockerEcsHelloWorld App",
+  "Parameters" : {
+    "SubnetListParam" : {
+      "Type" : "List<AWS::EC2::Subnet::Id>",
+      "Description" : "List of subnets in which to create the Application Load Balancer"
+    },
+    "SecurityGroupsListParam" : {
+      "Type" : "List<AWS::EC2::SecurityGroup::Id>",
+      "Description" : "List of security groups in which to create the Application Load Balancer"
+    },
+    "VpcIdParam" : {
+      "Type" : "AWS::EC2::VPC::Id",
+      "Description" : "VPC in which to create the Application Load Balancer"
+    },
+  },
   "Resources" : {
     "DockerEcsHelloWorldCluster":{
       "Type":"AWS::ECS::Cluster",
@@ -28,6 +42,45 @@
        "ManagedPolicyArns": ["arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"],
        "RoleName": "DockerEcsHelloWorldClusterExecutionRole",
       }
+    },
+    "DockerEcsHelloWorldLoadBalancer": {
+      "Type" : "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties" : {
+        "Name" : "DockerEcsHelloWorldLoadBalancer",
+        "Scheme" : "internet-facing",
+        "SecurityGroups" : {"Ref" : "SecurityGroupsListParam"},
+        "Subnets" : {"Ref" : "SubnetListParam"},
+        "Type" : "application",
+        "IpAddressType" : "ipv4"
+      }
+    },
+    "DockerEcsHelloWorldLoadBalancerListener": {
+    "Type": "AWS::ElasticLoadBalancingV2::Listener",
+    "Properties": {
+      "DefaultActions": [{
+        "Type": "forward",
+        "TargetGroupArn": { "Ref": "DockerEcsHelloWorldTargetGroup" }
+      }],
+      "LoadBalancerArn": { "Ref": "DockerEcsHelloWorldLoadBalancer" },
+      "Port": 80,
+      "Protocol": "HTTP"
+    }
+    },
+    "DockerEcsHelloWorldTargetGroup": {
+      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+      "Properties": {
+        "Port": 80,
+        "Protocol": "HTTP",
+        "VpcId": { "Ref": "VpcIdParam" },
+        "TargetType": "ip",
+      },
+      "DependsOn": [ "DockerEcsHelloWorldLoadBalancer" ]
+    }
+  },
+  "Outputs" : {
+    "TargetGroupArn" : {
+      "Description" : "Target Group ARN",
+      "Value" : { "Ref": "DockerEcsHelloWorldTargetGroup" }
     }
   }
 }
