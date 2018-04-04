@@ -22,8 +22,8 @@ region="$(prop 'app.region')"
 appName="$(prop 'app.name')"
 scriptDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cloudformation="file://cloudformation.json"
-subnetId="$(prop 'net.subnets.id')"
-sgId="$(prop 'net.sgs.id')"
+subnetIds="$(prop 'net.subnet.ids')"
+sgIds="$(prop 'net.sg.ids')"
 vpcId="$(prop 'net.vpc.id')"
 
 # Checking if the stack exists already
@@ -53,8 +53,8 @@ error="$(aws cloudformation $stack_action \
     --stack-name $appName \
     --template-body $cloudformation \
     --region $region \
-    --parameters ParameterKey=SubnetListParam,ParameterValue=$subnetId \
-      ParameterKey=SecurityGroupsListParam,ParameterValue=$sgId \
+    --parameters ParameterKey=SubnetListParam,ParameterValue="\"$subnetIds\"" \
+      ParameterKey=SecurityGroupsListParam,ParameterValue=$sgIds \
       ParameterKey=VpcIdParam,ParameterValue=$vpcId 2>&1 > /dev/null)"
 
 # If aws cli cloudformation returned an error
@@ -77,24 +77,28 @@ else
   echo "Cloudformation creation/update completed"
 fi
 
+# Retreiving the target group arn created by the cloudofrmation stack
 targetGroup="$(aws cloudformation describe-stacks \
                   --stack-name $appName \
                   --region $region \
                   --query 'Stacks[0].Outputs[0].OutputValue')"
 
-                  targetGroup="${targetGroup%\"}"
-                  targetGroup="${targetGroup#\"}"
-echo "AAAAAAAAAAAAAAA $targetGroup"
+# Removing quotes from targetGroup
+targetGroup="${targetGroup%\"}"
+targetGroup="${targetGroup#\"}"
 
 # Generating ecs-params.yml
 echo "Generating ecs-params.yml"
 
-# TODO Dirty hack!! Find something better
-tempSub="${subnetId%\"}"
-tempSub="${tempSub#\"}"
-tempSub="$(echo $tempSub | cut -d',' -f1)"
+# Removing double quotes and using only the first subnet id
+# Dirty hack!! Find something better
+#tempSub="${subnetIds%\"}"
+#tempSub="${tempSub#\"}"
+tempSub="$(echo $subnetIds | cut -d',' -f1)"
+tempSg="$(echo $sgIds | cut -d',' -f1)"
+# Adding subnet id and security group id to the ecs params file
 sed "s/NET_SUBNET_ID/$tempSub/g" ./ecs-params.template.yml > ./ecs-params.yml
-sed -i "s/NET_SG_ID/$sgId/g" ./ecs-params.yml
+sed -i "s/NET_SG_ID/$tempSg/g" ./ecs-params.yml
 
 # Deploying the cluster
 ecs-cli configure --cluster DockerEcsHelloWorldCluster --default-launch-type FARGATE --region us-east-1

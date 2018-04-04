@@ -1,4 +1,5 @@
 app.region=us-east-1
 app.name=DockerEcsHelloWorld
-net.subnet.id=<subnet-id>
-net.sg.id=<security-group-id>
+net.vpc.id=<vpc-id>
+net.subnet.ids=<subnet1-id>,<subnet2-id>
+net.sg.ids=<security-group-id>,<security-group2-id>
